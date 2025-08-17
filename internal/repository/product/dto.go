@@ -5,7 +5,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type createProduct struct {
+type CreateProduct struct {
 	ReceptionID uuid.UUID
 	Type        entity.ProductType
 }

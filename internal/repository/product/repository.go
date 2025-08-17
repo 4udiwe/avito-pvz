@@ -18,7 +18,7 @@ func New(postgres *postgres.Postgres) *Repository {
 	return &Repository{postgres}
 }
 
-func (r *Repository) Create(ctx context.Context, p createProduct) (entity.Product, error) {
+func (r *Repository) Create(ctx context.Context, p CreateProduct) (entity.Product, error) {
 	query, args, _ := r.Builder.
 		Insert("products").
 		Columns("reception_id", "type").
@@ -39,10 +39,16 @@ func (r *Repository) Create(ctx context.Context, p createProduct) (entity.Produc
 	return product, nil
 }
 
-func (r *Repository) DeleteById(ctx context.Context, productID uuid.UUID) error {
+func (r *Repository) DeleteLastFromReception(ctx context.Context, pointID uuid.UUID) error {
 	query, args, _ := r.Builder.
 		Delete("products").
-		Where("id = ?", productID).
+		Where("id = ("+
+			"SELECT p.id FROM products p "+
+			"JOIN receptions r ON p.reception_id = r.id "+
+			"WHERE r.point_id = ? "+
+			"ORDER BY p.created_at DESC, p.id DESC "+
+			"LIMIT 1"+
+			")", pointID).
 		ToSql()
 
 	result, err := r.GetTxManager(ctx).Exec(ctx, query, args...)
