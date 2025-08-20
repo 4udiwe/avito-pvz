@@ -9,8 +9,8 @@ var (
 	ErrUserAlreadyExists = errors.New("user already exists")
 	ErrNoUserFound       = errors.New("no user found")
 
-	ErrLastReceptionNotClosed    = errors.New("last reception not closed")
-	ErrNoReceptionFound          = errors.New("no reception found")
+	ErrLastReceptionNotClosed = errors.New("last reception not closed")
+	ErrNoReceptionFound       = errors.New("no reception found")
 
 	ErrNoProductFound = errors.New("no product found")
 )

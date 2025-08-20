@@ -12,13 +12,13 @@ import (
 
 type Service struct {
 	receptionRepository ReceptionRepository
-	txManager       transactor.Transactor
+	txManager           transactor.Transactor
 }
 
 func New(r ReceptionRepository, tx transactor.Transactor) *Service {
 	return &Service{
 		receptionRepository: r,
-		txManager:       tx,
+		txManager:           tx,
 	}
 }
 
@@ -32,7 +32,7 @@ func (s *Service) OpenReception(ctx context.Context, pointID uuid.UUID) (entity.
 			return err
 		}
 
-		if status != entity.ReceptionStatusClosed {
+		if status == entity.ReceptionStatusInProgress {
 			return ErrLastReceptionNotClosed
 		}
 
@@ -61,8 +61,8 @@ func (s *Service) CloseReception(ctx context.Context, pointID uuid.UUID) error {
 			return err
 		}
 
-		if status != entity.ReceptionStatusClosed {
-			return ErrLastReceptionNotClosed
+		if status == entity.ReceptionStatusClosed {
+			return ErrLastReceptionAlreadyClosed
 		}
 
 		// Products amount check

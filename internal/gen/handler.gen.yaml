@@ -1,0 +1,7 @@
+package: gen
+output: internal\gen\handler.gen.go
+generate:
+  models: false
+  echo-server: true
+  embedded-spec: true
+  client: false
