@@ -11,6 +11,7 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/sirupsen/logrus"
 )
 
 type Repository struct {
@@ -22,6 +23,8 @@ func New(pg *postgres.Postgres) *Repository {
 }
 
 func (r *Repository) Create(ctx context.Context, user entity.User) (entity.User, error) {
+	logrus.Infof("Attempting to create user: %s", user.Email)
+
 	query, args, _ := r.Builder.Insert("users").
 		Columns("email", "password", "role").
 		Values(user.Email, user.Password, user.Role).
@@ -34,16 +37,21 @@ func (r *Repository) Create(ctx context.Context, user entity.User) (entity.User,
 		var pgErr *pgconn.PgError
 		if ok := errors.As(err, &pgErr); ok {
 			if pgErr.Code == pgerrcode.UniqueViolation {
+				logrus.Warnf("User already exists: %s", user.Email)
 				return entity.User{}, repository.ErrUserAlreadyExists
 			}
 		}
+		logrus.Errorf("Failed to create user %s: %v", user.Email, err)
 		return entity.User{}, err
 	}
 
+	logrus.Infof("User created: %+v", user)
 	return user, nil
 }
 
 func (r *Repository) GetByEmail(ctx context.Context, email string) (entity.User, error) {
+	logrus.Infof("Fetching user by email: %s", email)
+
 	query, args, _ := r.Builder.
 		Select("id", "password", "role").
 		From("users").
@@ -59,9 +67,12 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (entity.User,
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+			logrus.Warnf("No user found with email: %s", email)
 			return entity.User{}, repository.ErrNoUserFound
 		}
+		logrus.Errorf("Failed to fetch user %s: %v", email, err)
 		return entity.User{}, fmt.Errorf("UserRepository.GetByEmail - Scan: %w", err)
 	}
+	logrus.Infof("Fetched user: %+v", user)
 	return user, nil
 }

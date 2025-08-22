@@ -8,6 +8,7 @@ import (
 	"github.com/4udiwe/avito-pvz/internal/repository"
 	"github.com/4udiwe/avito-pvz/pkg/transactor"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 type Service struct {
@@ -29,16 +30,19 @@ func (s *Service) AddProduct(
 	pointID uuid.UUID,
 	productType entity.ProductType,
 ) (entity.Product, error) {
+	logrus.Infof("Service: Adding product of type %s to point: %s", productType, pointID)
 	var out entity.Product
 	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		// Status check
 		status, err := s.receptionRepository.GetLastReceptionStatus(ctx, pointID)
 
 		if err != nil {
+			logrus.Errorf("Service: Failed to get last reception status for point %s: %v", pointID, err)
 			return err
 		}
 
 		if status != entity.ReceptionStatusInProgress {
+			logrus.Warnf("Service: Reception already closed for point: %s", pointID)
 			return ErrReceptionAlreadyClosed
 		}
 
@@ -48,6 +52,7 @@ func (s *Service) AddProduct(
 	})
 
 	if err != nil {
+		logrus.Errorf("Service: Failed to add product to point %s: %v", pointID, err)
 		if errors.Is(err, repository.ErrNoPointFound) {
 			return entity.Product{}, ErrNoPointFound
 		}
@@ -57,19 +62,23 @@ func (s *Service) AddProduct(
 		return entity.Product{}, err
 	}
 
+	logrus.Infof("Service: Product added: %+v", out)
 	return out, nil
 }
 
 func (s *Service) DeleteLastProductFromReception(ctx context.Context, pointID uuid.UUID) error {
+	logrus.Infof("Service: Deleting last product from reception for point: %s", pointID)
 	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		// Status check
 		status, err := s.receptionRepository.GetLastReceptionStatus(ctx, pointID)
 
 		if err != nil {
+			logrus.Errorf("Service: Failed to get last reception status for point %s: %v", pointID, err)
 			return err
 		}
 
 		if status != entity.ReceptionStatusInProgress {
+			logrus.Warnf("Service: Reception already closed for point: %s", pointID)
 			return ErrReceptionAlreadyClosed
 		}
 
@@ -78,11 +87,13 @@ func (s *Service) DeleteLastProductFromReception(ctx context.Context, pointID uu
 	})
 
 	if err != nil {
+		logrus.Errorf("Service: Failed to delete last product from reception for point %s: %v", pointID, err)
 		if errors.Is(err, repository.ErrNoPointFound) {
 			return ErrNoPointFound
 		}
 		return err
 	}
 
+	logrus.Infof("Service: Deleted last product from reception for point: %s", pointID)
 	return nil
 }

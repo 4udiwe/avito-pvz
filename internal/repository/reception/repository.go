@@ -10,6 +10,7 @@ import (
 	"github.com/4udiwe/avito-pvz/pkg/postgres"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/sirupsen/logrus"
 )
 
 type Repository struct {
@@ -21,6 +22,8 @@ func New(postgres *postgres.Postgres) *Repository {
 }
 
 func (r *Repository) Open(ctx context.Context, pointID uuid.UUID) (entity.Reception, error) {
+	logrus.Infof("Opening reception for point: %s", pointID)
+
 	query, args, _ := r.Builder.
 		Insert("receptions").
 		Columns("point_id").
@@ -36,13 +39,17 @@ func (r *Repository) Open(ctx context.Context, pointID uuid.UUID) (entity.Recept
 	)
 
 	if err != nil {
-		return entity.Reception{}, fmt.Errorf("ReceptionRepository.Create - create.Scan: %w", err)
+		logrus.Errorf("Failed to open reception for point %s: %v", pointID, err)
+		return entity.Reception{}, fmt.Errorf("ReceptionRepository.Open - create.Scan: %w", err)
 	}
 
+	logrus.Infof("Reception opened: %+v", reception)
 	return reception, nil
 }
 
 func (r *Repository) GetLastReceptionStatus(ctx context.Context, pointID uuid.UUID) (entity.ReceptionStatus, error) {
+	logrus.Infof("Fetching last reception status for point: %s", pointID)
+
 	query, args, _ := r.Builder.
 		Select("status").
 		From("receptions").
@@ -55,38 +62,41 @@ func (r *Repository) GetLastReceptionStatus(ctx context.Context, pointID uuid.UU
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+			logrus.Warnf("No receptions found for point: %s", pointID)
 			return entity.ReceptionStatusClosed, nil
 		}
+		logrus.Errorf("Failed to fetch last reception status for point %s: %v", pointID, err)
 		return "", fmt.Errorf("ReceptionRepository.GetLastReceptionStatus - lastStatus.Scan: %w", err)
 	}
 
+	logrus.Infof("Fetched last reception status for point %s: %s", pointID, lastReceptionStatus)
 	return lastReceptionStatus, nil
 }
 
 func (r *Repository) GetLastReceptionProductsAmount(ctx context.Context, pointID uuid.UUID) (int, error) {
-	subquery := r.Builder.
-		Select("id").
-		From("receptions").
-		Where("point_id = ?", pointID).
-		OrderBy("created_at DESC").
-		Limit(1)
+	logrus.Infof("Fetching last reception products amount for point: %s", pointID)
 
-	query, args, _ := r.Builder.
-		Select("COUNT(p.id)").
-		From("products p").
-		JoinClause("JOIN (?) AS r ON p.reception_id = r.id", subquery).
-		ToSql()
-
+	query := `
+        SELECT COUNT(p.id)
+        FROM products p
+        JOIN (
+            SELECT id FROM receptions WHERE point_id = $1 ORDER BY created_at DESC LIMIT 1
+        ) r ON p.reception_id = r.id
+    `
 	var productCount int
-	err := r.GetTxManager(ctx).QueryRow(ctx, query, args...).Scan(&productCount)
+	err := r.GetTxManager(ctx).QueryRow(ctx, query, pointID).Scan(&productCount)
 	if err != nil {
+		logrus.Errorf("Failed to fetch product count for last reception of point %s: %v", pointID, err)
 		return 0, fmt.Errorf("ReceptionRepository.GetLastReceptionProductsAmount - productCount.Scan: %w", err)
 	}
 
+	logrus.Infof("Fetched product count for last reception of point %s: %d", pointID, productCount)
 	return productCount, nil
 }
 
 func (r *Repository) CloseLastReception(ctx context.Context, pointID uuid.UUID) error {
+	logrus.Infof("Closing last reception for point: %s", pointID)
+
 	query, args, _ := r.Builder.
 		Update("receptions").
 		Set("status", entity.ReceptionStatusClosed).
@@ -97,11 +107,14 @@ func (r *Repository) CloseLastReception(ctx context.Context, pointID uuid.UUID) 
 
 	result, err := r.GetTxManager(ctx).Exec(ctx, query, args...)
 	if err != nil {
+		logrus.Errorf("Failed to close last reception for point %s: %v", pointID, err)
 		return fmt.Errorf("ReceptionRepository.CloseLastReception - Exec: %w", err)
 	}
 
 	if rowsAffected := result.RowsAffected(); rowsAffected == 0 {
+		logrus.Warnf("No reception found to close for point: %s", pointID)
 		return repository.ErrNoReceptionFound
 	}
+	logrus.Infof("Closed last reception for point: %s", pointID)
 	return nil
 }

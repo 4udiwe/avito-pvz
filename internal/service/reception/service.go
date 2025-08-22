@@ -24,16 +24,19 @@ func New(r ReceptionRepository, tx transactor.Transactor) *Service {
 }
 
 func (s *Service) OpenReception(ctx context.Context, pointID uuid.UUID) (entity.Reception, error) {
+	logrus.Infof("Service: Opening reception for point: %s", pointID)
 	var reception entity.Reception
 	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		// Status check
 		status, err := s.receptionRepository.GetLastReceptionStatus(ctx, pointID)
 
 		if err != nil {
+			logrus.Errorf("Service: Failed to get last reception status for point %s: %v", pointID, err)
 			return err
 		}
 
 		if status == entity.ReceptionStatusInProgress {
+			logrus.Warnf("Service: Last reception not closed for point: %s", pointID)
 			return ErrLastReceptionNotClosed
 		}
 
@@ -44,26 +47,30 @@ func (s *Service) OpenReception(ctx context.Context, pointID uuid.UUID) (entity.
 	})
 
 	if err != nil {
-		logrus.Errorf("ReceptionService - OpenReception - %v", err)
+		logrus.Errorf("Service: Failed to open reception for point %s: %v", pointID, err)
 		if errors.Is(err, repository.ErrNoPointFound) {
 			return entity.Reception{}, ErrNoPointFound
 		}
 		return entity.Reception{}, err
 	}
 
+	logrus.Infof("Service: Reception opened: %+v", reception)
 	return reception, nil
 }
 
 func (s *Service) CloseReception(ctx context.Context, pointID uuid.UUID) error {
+	logrus.Infof("Service: Closing reception for point: %s", pointID)
 	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
 		// Status check
 		status, err := s.receptionRepository.GetLastReceptionStatus(ctx, pointID)
 
 		if err != nil {
+			logrus.Errorf("Service: Failed to get last reception status for point %s: %v", pointID, err)
 			return err
 		}
 
 		if status == entity.ReceptionStatusClosed {
+			logrus.Warnf("Service: Last reception already closed for point: %s", pointID)
 			return ErrLastReceptionAlreadyClosed
 		}
 
@@ -71,10 +78,12 @@ func (s *Service) CloseReception(ctx context.Context, pointID uuid.UUID) error {
 		amount, err := s.receptionRepository.GetLastReceptionProductsAmount(ctx, pointID)
 
 		if err != nil {
+			logrus.Errorf("Service: Failed to get products amount for point %s: %v", pointID, err)
 			return err
 		}
 
 		if amount == 0 {
+			logrus.Warnf("Service: Cannot close empty reception for point: %s", pointID)
 			return ErrCannotCloseEmptyReception
 		}
 
@@ -83,6 +92,7 @@ func (s *Service) CloseReception(ctx context.Context, pointID uuid.UUID) error {
 	})
 
 	if err != nil {
+		logrus.Errorf("Service: Failed to close reception for point %s: %v", pointID, err)
 		if errors.Is(err, repository.ErrNoPointFound) {
 			return ErrNoPointFound
 		}
@@ -92,5 +102,6 @@ func (s *Service) CloseReception(ctx context.Context, pointID uuid.UUID) error {
 		return err
 	}
 
+	logrus.Infof("Service: Reception closed for point: %s", pointID)
 	return nil
 }

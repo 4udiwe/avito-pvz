@@ -20,7 +20,7 @@ func New(receptionService ReceptionService) api.Handler {
 }
 
 type Request struct {
-	PointID uuid.UUID `param:"pvz_id" validate:"required"`
+	PointID uuid.UUID `param:"pvzId" validate:"required"`
 }
 
 func (h *handler) Handle(
