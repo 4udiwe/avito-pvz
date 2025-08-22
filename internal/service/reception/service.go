@@ -8,6 +8,7 @@ import (
 	"github.com/4udiwe/avito-pvz/internal/repository"
 	"github.com/4udiwe/avito-pvz/pkg/transactor"
 	"github.com/google/uuid"
+	"github.com/sirupsen/logrus"
 )
 
 type Service struct {
@@ -43,6 +44,7 @@ func (s *Service) OpenReception(ctx context.Context, pointID uuid.UUID) (entity.
 	})
 
 	if err != nil {
+		logrus.Errorf("ReceptionService - OpenReception - %v", err)
 		if errors.Is(err, repository.ErrNoPointFound) {
 			return entity.Reception{}, ErrNoPointFound
 		}

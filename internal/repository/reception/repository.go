@@ -24,6 +24,7 @@ func (r *Repository) Open(ctx context.Context, pointID uuid.UUID) (entity.Recept
 	query, args, _ := r.Builder.
 		Insert("receptions").
 		Columns("point_id").
+		Values(pointID).
 		Suffix("RETURNING id, created_at, status").
 		ToSql()
 
@@ -46,7 +47,6 @@ func (r *Repository) GetLastReceptionStatus(ctx context.Context, pointID uuid.UU
 		Select("status").
 		From("receptions").
 		Where("point_id = ?", pointID).
-		OrderBy("created_at DESC").
 		Limit(1).
 		ToSql()
 
@@ -55,9 +55,9 @@ func (r *Repository) GetLastReceptionStatus(ctx context.Context, pointID uuid.UU
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return "", repository.ErrNoPointFound
+			return entity.ReceptionStatusClosed, nil
 		}
-		return "", fmt.Errorf("ReceptionRepository.Create - lastStatus.Scan: %w", err)
+		return "", fmt.Errorf("ReceptionRepository.GetLastReceptionStatus - lastStatus.Scan: %w", err)
 	}
 
 	return lastReceptionStatus, nil

@@ -6,7 +6,6 @@ import (
 
 	"github.com/4udiwe/avito-pvz/internal/entity"
 	"github.com/4udiwe/avito-pvz/internal/repository"
-	repo_product "github.com/4udiwe/avito-pvz/internal/repository/product"
 	"github.com/4udiwe/avito-pvz/pkg/transactor"
 	"github.com/google/uuid"
 )
@@ -28,7 +27,7 @@ func New(p ProductsRepository, r ReceptionRepository, tx transactor.Transactor) 
 func (s *Service) AddProduct(
 	ctx context.Context,
 	pointID uuid.UUID,
-	product repo_product.CreateProduct,
+	productType entity.ProductType,
 ) (entity.Product, error) {
 	var out entity.Product
 	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
@@ -44,13 +43,16 @@ func (s *Service) AddProduct(
 		}
 
 		// Create
-		out, err = s.productRepository.Create(ctx, product)
+		out, err = s.productRepository.Create(ctx, pointID, productType)
 		return err
 	})
 
 	if err != nil {
 		if errors.Is(err, repository.ErrNoPointFound) {
 			return entity.Product{}, ErrNoPointFound
+		}
+		if errors.Is(err, repository.ErrNoReceptionFound) {
+			return entity.Product{}, ErrNoReceptionFound
 		}
 		return entity.Product{}, err
 	}

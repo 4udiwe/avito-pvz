@@ -43,3 +43,5 @@ func (s *Service) GetAllPoints(ctx context.Context) ([]entity.Point, error) {
 
 	return points, nil
 }
+
+

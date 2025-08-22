@@ -1,7 +1,0 @@
-package: gen
-output: internal\gen\dto.gen.go
-generate:
-  models: true
-  echo-server: false
-  embedded-spec: false
-  client: false

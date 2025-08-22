@@ -2,12 +2,15 @@ package repo_product
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/4udiwe/avito-pvz/internal/entity"
 	"github.com/4udiwe/avito-pvz/internal/repository"
 	"github.com/4udiwe/avito-pvz/pkg/postgres"
+	"github.com/Masterminds/squirrel"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 )
 
 type Repository struct {
@@ -18,19 +21,36 @@ func New(postgres *postgres.Postgres) *Repository {
 	return &Repository{postgres}
 }
 
-func (r *Repository) Create(ctx context.Context, p CreateProduct) (entity.Product, error) {
+func (r *Repository) Create(ctx context.Context, pointID uuid.UUID, productType entity.ProductType) (entity.Product, error) {
 	query, args, _ := r.Builder.
+		Select("id").
+		From("receptions").
+		Where(squirrel.Eq{"point_id": pointID}).
+		OrderBy("created_at DESC").
+		Limit(1).
+		ToSql()
+
+	var receptionID uuid.UUID
+	err := r.GetTxManager(ctx).QueryRow(ctx, query, args...).Scan(&receptionID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entity.Product{}, repository.ErrNoReceptionFound
+		}
+		return entity.Product{}, fmt.Errorf("ProductRepository.Create - find reception: %w", err)
+	}
+
+	query, args, _ = r.Builder.
 		Insert("products").
 		Columns("reception_id", "type").
-		Values(p.ReceptionID, p.Type).
+		Values(receptionID, productType).
 		Suffix("RETURNING id, created_at").
 		ToSql()
 
 	product := entity.Product{
-		ReceptionID: p.ReceptionID,
-		Type:        p.Type,
+		ReceptionID: receptionID,
+		Type:        productType,
 	}
-	err := r.GetTxManager(ctx).QueryRow(ctx, query, args...).Scan(&product.ID, &product.CreatedAt)
+	err = r.GetTxManager(ctx).QueryRow(ctx, query, args...).Scan(&product.ID, &product.CreatedAt)
 
 	if err != nil {
 		return entity.Product{}, fmt.Errorf("ProductRepository.Create - Scan: %w", err)
