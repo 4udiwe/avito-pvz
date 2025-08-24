@@ -94,3 +94,38 @@ func (r *Repository) DeleteLastFromReception(ctx context.Context, pointID uuid.U
 	logrus.Infof("Deleted last product from reception for point: %s", pointID)
 	return nil
 }
+
+func (r *Repository) GetAllByReception(ctx context.Context, receptionID uuid.UUID) ([]entity.Product, error) {
+	logrus.Infof("Fetching all products for reception: %s", receptionID)
+
+	query, args, _ := r.Builder.
+		Select("id", "reception_id", "type", "created_at").
+		From("products").
+		Where("reception_id = ?", receptionID).
+		OrderBy("created_at ASC").
+		ToSql()
+
+	rows, err := r.GetTxManager(ctx).Query(ctx, query, args...)
+	if err != nil {
+		logrus.Errorf("Failed to fetch products for reception %s: %v", receptionID, err)
+		return nil, fmt.Errorf("ProductRepository.GetAllByReception - Query: %w", err)
+	}
+	defer rows.Close()
+
+	var products []entity.Product
+	for rows.Next() {
+		var product entity.Product
+		if err := rows.Scan(&product.ID, &product.ReceptionID, &product.Type, &product.CreatedAt); err != nil {
+			logrus.Errorf("Failed to scan product row: %v", err)
+			return nil, fmt.Errorf("ProductRepository.GetAllByReception - Scan: %w", err)
+		}
+		products = append(products, product)
+	}
+	if err := rows.Err(); err != nil {
+		logrus.Errorf("Rows error after fetching products: %v", err)
+		return nil, fmt.Errorf("ProductRepository.GetAllByReception - rows.Err: %w", err)
+	}
+
+	logrus.Infof("Fetched %d products for reception %s", len(products), receptionID)
+	return products, nil
+}

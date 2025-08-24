@@ -11,3 +11,13 @@ type Point struct {
 	CreatedAt time.Time `db:"created_at"`
 	City      string    `db:"city"`
 }
+
+type PointFullInfo struct {
+    Point      Point
+    Receptions []ReceptionWithProducts
+}
+
+type ReceptionWithProducts struct {
+    Reception Reception
+    Products  []Product
+}

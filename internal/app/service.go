@@ -10,7 +10,7 @@ func (app *App) PointService() *point.Service {
 	if app.pointService != nil {
 		return app.pointService
 	}
-	app.pointService = point.New(app.PointRepo(), app.Postgres())
+	app.pointService = point.New(app.PointRepo(), app.ReceptionRepo(), app.ProductRepo(), app.Postgres())
 	return app.pointService
 }
 

@@ -11,14 +11,22 @@ import (
 )
 
 type Service struct {
-	pointRepository PointRepository
-	txManager       transactor.Transactor
+	pointRepository     PointRepository
+	receptionRepository ReceptionRepository
+	productRepository   ProductRepository
+	txManager           transactor.Transactor
 }
 
-func New(r PointRepository, tx transactor.Transactor) *Service {
+func New(pointRepo PointRepository,
+	receptionRepo ReceptionRepository,
+	productRepo ProductRepository,
+	txManager transactor.Transactor,
+) *Service {
 	return &Service{
-		pointRepository: r,
-		txManager:       tx,
+		pointRepository:     pointRepo,
+		receptionRepository: receptionRepo,
+		productRepository:   productRepo,
+		txManager:           txManager,
 	}
 }
 
@@ -50,4 +58,44 @@ func (s *Service) GetAllPoints(ctx context.Context) ([]entity.Point, error) {
 
 	logrus.Infof("Service: Fetched %d points", len(points))
 	return points, nil
+}
+
+func (s *Service) GetAllPointsFullInfo(ctx context.Context) ([]entity.PointFullInfo, error) {
+	logrus.Info("Service: Fetching full info for all points")
+
+	points, err := s.pointRepository.GetAll(ctx)
+	if err != nil {
+		logrus.Errorf("Service: Failed to fetch points: %v", err)
+		return nil, err
+	}
+
+	var result []entity.PointFullInfo
+	for _, point := range points {
+		receptions, err := s.receptionRepository.GetAllByPoint(ctx, point.ID)
+		if err != nil {
+			logrus.Errorf("Service: Failed to fetch receptions for point %v: %v", point.ID, err)
+			return nil, err
+		}
+
+		var receptionsWithProducts []entity.ReceptionWithProducts
+		for _, reception := range receptions {
+			products, err := s.productRepository.GetAllByReception(ctx, reception.ID)
+			if err != nil {
+				logrus.Errorf("Service: Failed to fetch products for reception %v: %v", reception.ID, err)
+				return nil, err
+			}
+			receptionsWithProducts = append(receptionsWithProducts, entity.ReceptionWithProducts{
+				Reception: reception,
+				Products:  products,
+			})
+		}
+
+		result = append(result, entity.PointFullInfo{
+			Point:      point,
+			Receptions: receptionsWithProducts,
+		})
+	}
+
+	logrus.Infof("Service: Fetched full info for %d points", len(result))
+	return result, nil
 }

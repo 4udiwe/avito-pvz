@@ -118,3 +118,38 @@ func (r *Repository) CloseLastReception(ctx context.Context, pointID uuid.UUID) 
 	logrus.Infof("Closed last reception for point: %s", pointID)
 	return nil
 }
+
+func (r *Repository) GetAllByPoint(ctx context.Context, pointID uuid.UUID) ([]entity.Reception, error) {
+	logrus.Infof("Fetching all receptions for point: %s", pointID)
+
+	query, args, _ := r.Builder.
+		Select("id", "point_id", "created_at", "status").
+		From("receptions").
+		Where("point_id = ?", pointID).
+		OrderBy("created_at ASC").
+		ToSql()
+
+	rows, err := r.GetTxManager(ctx).Query(ctx, query, args...)
+	if err != nil {
+		logrus.Errorf("Failed to fetch receptions for point %s: %v", pointID, err)
+		return nil, fmt.Errorf("ReceptionRepository.GetAllByPoint - Query: %w", err)
+	}
+	defer rows.Close()
+
+	var receptions []entity.Reception
+	for rows.Next() {
+		var reception entity.Reception
+		if err := rows.Scan(&reception.ID, &reception.PointID, &reception.CreatedAt, &reception.Status); err != nil {
+			logrus.Errorf("Failed to scan reception row: %v", err)
+			return nil, fmt.Errorf("ReceptionRepository.GetAllByPoint - Scan: %w", err)
+		}
+		receptions = append(receptions, reception)
+	}
+	if err := rows.Err(); err != nil {
+		logrus.Errorf("Rows error after fetching receptions: %v", err)
+		return nil, fmt.Errorf("ReceptionRepository.GetAllByPoint - rows.Err: %w", err)
+	}
+
+	logrus.Infof("Fetched %d receptions for point %s", len(receptions), pointID)
+	return receptions, nil
+}

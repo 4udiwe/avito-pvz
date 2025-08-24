@@ -24,19 +24,39 @@ func New(pointService PointService) api.Handler {
 type Request struct{}
 
 type Response struct {
-	Points []dto.PVZ
+	Info []PointWithReceptions
+}
+
+type PointWithReceptions struct {
+	Pvz        dto.PVZ                 `json:"pvz"`
+	Receptions []ReceptionWithProducts `json:"receptions"`
+}
+
+type ReceptionWithProducts struct {
+	Reception dto.Reception `json:"reception"`
+	Products  []dto.Product `json:"products"`
 }
 
 func (h *handler) Handle(ctx echo.Context, in Request) error {
-	points, err := h.s.GetAllPoints(ctx.Request().Context())
+	pointsInfo, err := h.s.GetAllPointsFullInfo(ctx.Request().Context())
 
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	return ctx.JSON(http.StatusCreated,
 		Response{
-			Points: lo.Map(points, func(e entity.Point, i int) dto.PVZ {
-				return *dto.EntityPointToDTO(&e)
+			Info: lo.Map(pointsInfo, func(item entity.PointFullInfo, _ int) PointWithReceptions {
+				return PointWithReceptions{
+					Pvz:        *dto.EntityPointToDTO(&item.Point),
+					Receptions: lo.Map(item.Receptions, func(e entity.ReceptionWithProducts, _ int) ReceptionWithProducts {
+						return ReceptionWithProducts{
+							Reception: *dto.EntityReceptionToDTO(&e.Reception),
+							Products:  lo.Map(e.Products, func(p entity.Product, _ int) dto.Product {
+								return *dto.EntityProductToDTO(&p)
+							}),
+						}
+					}),
+				}
 			}),
 		})
 }

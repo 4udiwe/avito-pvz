@@ -7,5 +7,5 @@ import (
 )
 
 type PointService interface {
-	GetAllPoints(ctx context.Context) ([]entity.Point, error)
+	GetAllPointsFullInfo(ctx context.Context) ([]entity.PointFullInfo, error)
 }

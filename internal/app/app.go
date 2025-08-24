@@ -100,5 +100,5 @@ func (app *App) Start() {
 		log.Errorf("app - Start - server error: %v", err)
 	}
 
-	log.Info("Shutting down...")
+	log.Info("Graceful shutdown...")
 }
