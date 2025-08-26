@@ -4,6 +4,7 @@ import (
 	"github.com/4udiwe/avito-pvz/internal/service/point"
 	"github.com/4udiwe/avito-pvz/internal/service/product"
 	"github.com/4udiwe/avito-pvz/internal/service/reception"
+	"github.com/4udiwe/avito-pvz/internal/service/user"
 )
 
 func (app *App) PointService() *point.Service {
@@ -28,4 +29,12 @@ func (app *App) ReceptionService() *reception.Service {
 	}
 	app.receptionService = reception.New(app.ReceptionRepo(), app.Postgres())
 	return app.receptionService
+}
+
+func (app *App) UserService() *user.Service {
+	if app.userService != nil {
+		return app.userService
+	}
+	app.userService = user.New(app.UserRepo(), app.Postgres(), app.Auth(), app.Hasher())
+	return app.userService
 }

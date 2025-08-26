@@ -13,11 +13,11 @@ type Point struct {
 }
 
 type PointFullInfo struct {
-    Point      Point
-    Receptions []ReceptionWithProducts
+	Point      Point
+	Receptions []ReceptionWithProducts
 }
 
 type ReceptionWithProducts struct {
-    Reception Reception
-    Products  []Product
+	Reception Reception
+	Products  []Product
 }

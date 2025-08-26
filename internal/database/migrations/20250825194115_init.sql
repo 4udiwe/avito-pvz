@@ -52,8 +52,11 @@ CREATE TYPE user_role AS ENUM(
 CREATE TABLE users(
     id UUID DEFAULT gen_random_uuid() NOT NULL,
     email VARCHAR(256) UNIQUE NOT NULL,
-    password CHAR(60) NOT NULL,
+    password_hash CHAR(60) NOT NULL,
     role user_role NOT NULL,
+    refresh_token VARCHAR(256),
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
 
     PRIMARY KEY (id)
 );

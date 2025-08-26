@@ -1,6 +1,10 @@
 package entity
 
-import "github.com/google/uuid"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 type UserRole string
 
@@ -10,8 +14,11 @@ const (
 )
 
 type User struct {
-	ID       uuid.UUID `db:"id"`
-	Email    string    `db:"email"`
-	Password string    `db:"password"`
-	Role     UserRole  `db:"role"`
+	ID           uuid.UUID `db:"id"`
+	Email        string    `db:"email"`
+	PasswordHash string    `db:"password_hash"`
+	Role         UserRole  `db:"role"`
+	RefreshToken string    `db:"refresh_token"`
+	CreatedAt    time.Time `db:"created_at"`
+	UpdatedAt    time.Time `db:"updated_at"`
 }

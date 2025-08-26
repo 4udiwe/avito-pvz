@@ -5,9 +5,13 @@ import (
 	"github.com/4udiwe/avito-pvz/internal/api/http/delete_product"
 	"github.com/4udiwe/avito-pvz/internal/api/http/get_points"
 	"github.com/4udiwe/avito-pvz/internal/api/http/patch_reception"
+	"github.com/4udiwe/avito-pvz/internal/api/http/post_dummy_login"
+	"github.com/4udiwe/avito-pvz/internal/api/http/post_login"
 	"github.com/4udiwe/avito-pvz/internal/api/http/post_point"
 	"github.com/4udiwe/avito-pvz/internal/api/http/post_product"
 	"github.com/4udiwe/avito-pvz/internal/api/http/post_reception"
+	"github.com/4udiwe/avito-pvz/internal/api/http/post_refresh"
+	"github.com/4udiwe/avito-pvz/internal/api/http/post_register"
 )
 
 func (app *App) DeleteProductHandler() api.Handler {
@@ -56,4 +60,36 @@ func (app *App) PostReceptionHandler() api.Handler {
 	}
 	app.postReceptionHandler = post_reception.New(app.ReceptionService())
 	return app.postReceptionHandler
+}
+
+func (app *App) PostDummyLoginHandler() api.Handler {
+	if app.postDummyLoginHandler != nil {
+		return app.postDummyLoginHandler
+	}
+	app.postDummyLoginHandler = post_dummy_login.New(app.UserService())
+	return app.postDummyLoginHandler
+}
+
+func (app *App) PostLoginHandler() api.Handler {
+	if app.postLoginHandler != nil {
+		return app.postLoginHandler
+	}
+	app.postLoginHandler = post_login.New(app.UserService())
+	return app.postLoginHandler
+}
+
+func (app *App) PostRegisterHandler() api.Handler {
+	if app.postRegisterHandler != nil {
+		return app.postRegisterHandler
+	}
+	app.postRegisterHandler = post_register.New(app.UserService())
+	return app.postRegisterHandler
+}
+
+func (app *App) PostRefreshHandler() api.Handler {
+	if app.postRefreshHandler != nil {
+		return app.postRefreshHandler
+	}
+	app.postRefreshHandler = post_refresh.New(app.UserService())
+	return app.postRefreshHandler
 }

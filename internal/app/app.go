@@ -8,6 +8,8 @@ import (
 
 	"github.com/4udiwe/avito-pvz/config"
 	api "github.com/4udiwe/avito-pvz/internal/api/http"
+	"github.com/4udiwe/avito-pvz/internal/api/http/middleware"
+	"github.com/4udiwe/avito-pvz/internal/auth"
 	"github.com/4udiwe/avito-pvz/internal/database"
 	repo_point "github.com/4udiwe/avito-pvz/internal/repository/point"
 	repo_product "github.com/4udiwe/avito-pvz/internal/repository/product"
@@ -16,6 +18,8 @@ import (
 	"github.com/4udiwe/avito-pvz/internal/service/point"
 	"github.com/4udiwe/avito-pvz/internal/service/product"
 	"github.com/4udiwe/avito-pvz/internal/service/reception"
+	"github.com/4udiwe/avito-pvz/internal/service/user"
+	"github.com/4udiwe/avito-pvz/pkg/hasher"
 	"github.com/4udiwe/avito-pvz/pkg/httpserver"
 	"github.com/4udiwe/avito-pvz/pkg/postgres"
 	"github.com/labstack/echo/v4"
@@ -37,7 +41,19 @@ type App struct {
 	productRepo   *repo_product.Repository
 	receptionRepo *repo_reception.Repository
 
+	// Auth
+	auth   *auth.Auth
+	hasher *hasher.BcryptHasher
+
+	// Middleware
+	authMW *middleware.AuthMiddleware
+
 	// Handlers
+	postDummyLoginHandler api.Handler
+	postLoginHandler      api.Handler
+	postRegisterHandler   api.Handler
+	postRefreshHandler    api.Handler
+
 	deleteProductHandler  api.Handler
 	getPointsHandler      api.Handler
 	closeReceptionHandler api.Handler
@@ -46,6 +62,7 @@ type App struct {
 	postReceptionHandler  api.Handler
 
 	// Services
+	userService      *user.Service
 	pointService     *point.Service
 	productService   *product.Service
 	receptionService *reception.Service

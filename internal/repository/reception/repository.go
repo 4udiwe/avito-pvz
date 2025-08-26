@@ -54,6 +54,7 @@ func (r *Repository) GetLastReceptionStatus(ctx context.Context, pointID uuid.UU
 		Select("status").
 		From("receptions").
 		Where("point_id = ?", pointID).
+		OrderBy("created_at DESC").
 		Limit(1).
 		ToSql()
 

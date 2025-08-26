@@ -47,11 +47,11 @@ func (h *handler) Handle(ctx echo.Context, in Request) error {
 		Response{
 			Info: lo.Map(pointsInfo, func(item entity.PointFullInfo, _ int) PointWithReceptions {
 				return PointWithReceptions{
-					Pvz:        *dto.EntityPointToDTO(&item.Point),
+					Pvz: *dto.EntityPointToDTO(&item.Point),
 					Receptions: lo.Map(item.Receptions, func(e entity.ReceptionWithProducts, _ int) ReceptionWithProducts {
 						return ReceptionWithProducts{
 							Reception: *dto.EntityReceptionToDTO(&e.Reception),
-							Products:  lo.Map(e.Products, func(p entity.Product, _ int) dto.Product {
+							Products: lo.Map(e.Products, func(p entity.Product, _ int) dto.Product {
 								return *dto.EntityProductToDTO(&p)
 							}),
 						}

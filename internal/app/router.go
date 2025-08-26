@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 
+	"github.com/4udiwe/avito-pvz/internal/api/http/middleware"
 	"github.com/4udiwe/avito-pvz/pkg/validator"
 	"github.com/labstack/echo/v4"
 )
@@ -26,21 +27,26 @@ func (app *App) EchoHandler() *echo.Echo {
 }
 
 func (app *App) configureRouter(handler *echo.Echo) {
-	pvzGroup := handler.Group("pvz")
+	handler.POST("dummyLogin", app.PostDummyLoginHandler().Handle)
+	handler.POST("register", app.PostRegisterHandler().Handle)
+	handler.POST("login", app.PostLoginHandler().Handle)
+	handler.POST("refresh", app.PostRefreshHandler().Handle)
+
+	receptionsGroup := handler.Group("receptions", app.AuthMiddleware().Middleware)
 	{
-		pvzGroup.POST("", app.PostPointHandler().Handle)
-		pvzGroup.GET("", app.GetPointsHandler().Handle)
-		pvzGroup.POST("/:pvzId/close_last_reception", app.CloseReceptionHandler().Handle)
-		pvzGroup.POST("/:pvzId/delete_last_product", app.DeleteProductHandler().Handle)
+		receptionsGroup.POST("", app.PostReceptionHandler().Handle, middleware.EmployeeOnly)
 	}
 
-	receptionsGroup := handler.Group("receptions")
+	productsGroup := handler.Group("products", app.AuthMiddleware().Middleware)
 	{
-		receptionsGroup.POST("", app.PostReceptionHandler().Handle)
+		productsGroup.POST("", app.PostProductHandler().Handle, middleware.EmployeeOnly)
 	}
 
-	productsGroup := handler.Group("products")
+	pvzGroup := handler.Group("pvz", app.AuthMiddleware().Middleware)
 	{
-		productsGroup.POST("", app.PostProductHandler().Handle)
+		pvzGroup.POST("/:pvzId/close_last_reception", app.CloseReceptionHandler().Handle, middleware.EmployeeOnly)
+		pvzGroup.POST("/:pvzId/delete_last_product", app.DeleteProductHandler().Handle, middleware.EmployeeOnly)
+		pvzGroup.POST("", app.PostPointHandler().Handle, middleware.ModderatorOnly)
+		pvzGroup.GET("", app.GetPointsHandler().Handle, middleware.EmployeeAndModerator)
 	}
 }
