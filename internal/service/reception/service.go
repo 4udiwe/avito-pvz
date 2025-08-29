@@ -27,6 +27,17 @@ func (s *Service) OpenReception(ctx context.Context, pointID uuid.UUID) (entity.
 	logrus.Infof("Service: Opening reception for point: %s", pointID)
 	var reception entity.Reception
 	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
+		// Point existence check
+		exists, err := s.receptionRepository.CheckIfPointExists(ctx, pointID)
+		if err != nil {
+			logrus.Errorf("Service: Failed to check if point exists for point %s: %v", pointID, err)
+			return err
+		}
+		if !exists {
+			logrus.Warnf("Service: Point does not exist: %s", pointID)
+			return ErrNoPointFound
+		}
+
 		// Status check
 		status, err := s.receptionRepository.GetLastReceptionStatus(ctx, pointID)
 
@@ -35,7 +46,7 @@ func (s *Service) OpenReception(ctx context.Context, pointID uuid.UUID) (entity.
 			return err
 		}
 
-		if status == entity.ReceptionStatusInProgress {
+		if status != entity.ReceptionStatusClosed {
 			logrus.Warnf("Service: Last reception not closed for point: %s", pointID)
 			return ErrLastReceptionNotClosed
 		}
@@ -48,9 +59,6 @@ func (s *Service) OpenReception(ctx context.Context, pointID uuid.UUID) (entity.
 
 	if err != nil {
 		logrus.Errorf("Service: Failed to open reception for point %s: %v", pointID, err)
-		if errors.Is(err, repository.ErrNoPointFound) {
-			return entity.Reception{}, ErrNoPointFound
-		}
 		return entity.Reception{}, err
 	}
 
@@ -61,6 +69,17 @@ func (s *Service) OpenReception(ctx context.Context, pointID uuid.UUID) (entity.
 func (s *Service) CloseReception(ctx context.Context, pointID uuid.UUID) error {
 	logrus.Infof("Service: Closing reception for point: %s", pointID)
 	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
+		// Point existence check
+		exists, err := s.receptionRepository.CheckIfPointExists(ctx, pointID)
+		if err != nil {
+			logrus.Errorf("Service: Failed to check if point exists for point %s: %v", pointID, err)
+			return err
+		}
+		if !exists {
+			logrus.Warnf("Service: Point does not exist: %s", pointID)
+			return ErrNoPointFound
+		}
+
 		// Status check
 		status, err := s.receptionRepository.GetLastReceptionStatus(ctx, pointID)
 
@@ -92,13 +111,10 @@ func (s *Service) CloseReception(ctx context.Context, pointID uuid.UUID) error {
 	})
 
 	if err != nil {
-		logrus.Errorf("Service: Failed to close reception for point %s: %v", pointID, err)
-		if errors.Is(err, repository.ErrNoPointFound) {
-			return ErrNoPointFound
-		}
 		if errors.Is(err, repository.ErrNoReceptionFound) {
 			return ErrNoReceptionFound
 		}
+		logrus.Errorf("Service: Failed to close reception for point %s: %v", pointID, err)
 		return err
 	}
 

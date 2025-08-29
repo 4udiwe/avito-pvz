@@ -91,6 +91,9 @@ func (s *Service) DeleteLastProductFromReception(ctx context.Context, pointID uu
 		if errors.Is(err, repository.ErrNoPointFound) {
 			return ErrNoPointFound
 		}
+		if errors.Is(err, repository.ErrNoReceptionFound) {
+			return ErrNoReceptionFound
+		}
 		return err
 	}
 

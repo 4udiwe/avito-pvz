@@ -48,6 +48,8 @@ func (r *Repository) Open(ctx context.Context, pointID uuid.UUID) (entity.Recept
 }
 
 func (r *Repository) GetLastReceptionStatus(ctx context.Context, pointID uuid.UUID) (entity.ReceptionStatus, error) {
+	// TODO: ckech if there is a point with id pointID
+
 	logrus.Infof("Fetching last reception status for point: %s", pointID)
 
 	query, args, _ := r.Builder.
@@ -63,7 +65,7 @@ func (r *Repository) GetLastReceptionStatus(ctx context.Context, pointID uuid.UU
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			logrus.Warnf("No receptions found for point: %s", pointID)
+			logrus.Infof("No receptions found for point: %s", pointID)
 			return entity.ReceptionStatusClosed, nil
 		}
 		logrus.Errorf("Failed to fetch last reception status for point %s: %v", pointID, err)
@@ -153,4 +155,25 @@ func (r *Repository) GetAllByPoint(ctx context.Context, pointID uuid.UUID) ([]en
 
 	logrus.Infof("Fetched %d receptions for point %s", len(receptions), pointID)
 	return receptions, nil
+}
+
+func (r *Repository) CheckIfPointExists(ctx context.Context, pointID uuid.UUID) (bool, error) {
+	query, args, _ := r.Builder.
+		Select("1").
+		From("points").
+		Where("id = ?", pointID).
+		Limit(1).
+		ToSql()
+
+	var exists int
+	err := r.GetTxManager(ctx).QueryRow(ctx, query, args...).Scan(&exists)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
+		return false, fmt.Errorf("checkPointExists - Scan: %w", err)
+	}
+
+	return true, nil
 }

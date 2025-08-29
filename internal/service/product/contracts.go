@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate go tool mockgen -source=contracts.go -destination=mocks/repo_mock.go -package=mocks
+
 type ProductsRepository interface {
 	Create(ctx context.Context, pointID uuid.UUID, productType entity.ProductType) (entity.Product, error)
 	DeleteLastFromReception(ctx context.Context, pointID uuid.UUID) error

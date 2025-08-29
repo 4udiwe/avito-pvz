@@ -77,7 +77,7 @@ func (s *Service) GetAllPointsFullInfo(ctx context.Context) ([]entity.PointFullI
 			return nil, err
 		}
 
-		var receptionsWithProducts []entity.ReceptionWithProducts
+		receptionsWithProducts := make([]entity.ReceptionWithProducts, 0)
 		for _, reception := range receptions {
 			products, err := s.productRepository.GetAllByReception(ctx, reception.ID)
 			if err != nil {

@@ -49,42 +49,51 @@ func (s *Service) DummyLogin(ctx context.Context, role entity.UserRole) (string,
 func (s *Service) Register(ctx context.Context, email string, password string, role entity.UserRole) (*auth.Tokens, error) {
 	logrus.Infof("Service: Registering user %s with role %s", email, role)
 
-	// Check if there is no user with this email
-	if _, err := s.userRepository.GetByEmail(ctx, email); !errors.Is(err, repository.ErrNoUserFound) {
-		return nil, ErrUserAlreadyExists
-	}
+	var tokens *auth.Tokens
 
-	// Password hashing
-	hash, err := s.hasher.HashPassword(password)
+	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
+		// Check if there is no user with this email
+		if _, err := s.userRepository.GetByEmail(ctx, email); !errors.Is(err, repository.ErrNoUserFound) {
+			return ErrUserAlreadyExists
+		}
+
+		// Password hashing
+		hash, err := s.hasher.HashPassword(password)
+
+		if err != nil {
+			logrus.Errorf("Service: Failed to hash password: %v", err)
+			return err
+		}
+
+		user := entity.User{
+			Email:        email,
+			PasswordHash: hash,
+			Role:         role,
+		}
+
+		// Generate tokens
+		tokens, err = s.auth.GenerateTokens(user)
+		if err != nil {
+			logrus.Errorf("Service: Failed to generate tokens: %v", err)
+			return err
+		}
+
+		// Assigning refresh token to user and saving to DB
+		user.RefreshToken = tokens.RefreshToken
+
+		_, err = s.userRepository.Create(ctx, user)
+		if err != nil {
+			logrus.Errorf("Service: Failed to create user: %v", err)
+			return err
+		}
+		return err
+	})
 
 	if err != nil {
-		logrus.Errorf("Service: Failed to hash password: %v", err)
 		return nil, err
 	}
 
-	user := entity.User{
-		Email:        email,
-		PasswordHash: hash,
-		Role:         role,
-	}
-
-	// Generate tokens
-	tokens, err := s.auth.GenerateTokens(user)
-	if err != nil {
-		logrus.Errorf("Service: Failed to generate tokens: %v", err)
-		return nil, err
-	}
-
-	// Assigning refresh token to user and saving to DB
-	user.RefreshToken = tokens.RefreshToken
-
-	_, err = s.userRepository.Create(ctx, user)
-	if err != nil {
-		logrus.Errorf("Service: Failed to create user: %v", err)
-		return nil, err
-	}
-
-	logrus.Infof("Service: Registered user %s", user.Email)
+	logrus.Infof("Service: Registered user %s", email)
 
 	return tokens, nil
 }
@@ -92,38 +101,46 @@ func (s *Service) Register(ctx context.Context, email string, password string, r
 func (s *Service) Authenticate(ctx context.Context, email string, password string) (*auth.Tokens, error) {
 	logrus.Infof("Service: Authenticating user %s", email)
 
-	// Receiveing user
-	user, err := s.userRepository.GetByEmail(ctx, email)
-	if err != nil {
-		if errors.Is(err, repository.ErrNoUserFound) {
-			logrus.Errorf("Service: No user found by email: %v", err)
-			return nil, ErrNoUserFound
+	var tokens *auth.Tokens
+
+	err := s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
+		// Receiveing user
+		user, err := s.userRepository.GetByEmail(ctx, email)
+		if err != nil {
+			if errors.Is(err, repository.ErrNoUserFound) {
+				logrus.Errorf("Service: No user found by email: %v", err)
+				return ErrNoUserFound
+			}
+			logrus.Errorf("Service: Failed to get user by email: %v", err)
+			return err
 		}
-		logrus.Errorf("Service: Failed to get user by email: %v", err)
-		return nil, err
-	}
 
-	// Comparing password hashes
-	if !s.hasher.CheckPasswordHash(password, user.PasswordHash) {
-		logrus.Warnf("Service: Invalid password for user %s", email)
-		return nil, ErrInvalidCredentials
-	}
+		// Comparing password hashes
+		if !s.hasher.CheckPasswordHash(password, user.PasswordHash) {
+			logrus.Warnf("Service: Invalid password for user %s", email)
+			return ErrInvalidCredentials
+		}
 
-	// Generating new tokens
-	tokens, err := s.auth.GenerateTokens(user)
+		// Generating new tokens
+		tokens, err = s.auth.GenerateTokens(user)
+		if err != nil {
+			logrus.Errorf("Service: Failed to generate tokens: %v", err)
+			return err
+		}
+
+		// Updating refresh token for user
+		_, err = s.userRepository.UpdateRefreshToken(ctx, user.ID, tokens.RefreshToken)
+		if err != nil {
+			logrus.Errorf("Service: Failed to update refresh token: %v", err)
+		}
+		return err
+	})
+
 	if err != nil {
-		logrus.Errorf("Service: Failed to generate tokens: %v", err)
 		return nil, err
 	}
 
-	// Updating refresh token for user
-	_, err = s.userRepository.UpdateRefreshToken(ctx, user.ID, tokens.RefreshToken)
-	if err != nil {
-		logrus.Errorf("Service: Failed to update refresh token: %v", err)
-		return nil, err
-	}
-
-	logrus.Infof("Service: Authenticated user %s", user.Email)
+	logrus.Infof("Service: Authenticated user %s", email)
 	return tokens, nil
 }
 
@@ -136,35 +153,42 @@ func (s *Service) RefreshTokens(ctx context.Context, refreshToken string) (*auth
 		logrus.Warnf("Service: Invalid refresh token: %v", err)
 		return nil, ErrInvalidRefreshToken
 	}
+	var tokens *auth.Tokens
 
-	// Receiving user
-	user, err := s.userRepository.GetByEmail(ctx, email)
+	err = s.txManager.WithinTransaction(ctx, func(ctx context.Context) error {
+		// Receiving user
+		user, err := s.userRepository.GetByEmail(ctx, email)
+		if err != nil {
+			logrus.Errorf("Service: Failed to get user by email: %v", err)
+			return err
+		}
+
+		// Check if refresh token is the same as in DB
+		if user.RefreshToken != refreshToken {
+			logrus.Warnf("Service: Refresh token mismatch for user %s", email)
+			return ErrInvalidRefreshToken
+		}
+
+		// Generating new tokens
+		tokens, err = s.auth.GenerateTokens(user)
+		if err != nil {
+			logrus.Errorf("Service: Failed to generate tokens: %v", err)
+			return err
+		}
+
+		// Updating refresh token for user
+		_, err = s.userRepository.UpdateRefreshToken(ctx, user.ID, tokens.RefreshToken)
+		if err != nil {
+			logrus.Errorf("Service: Failed to update refresh token: %v", err)
+		}
+		return err
+	})
+
 	if err != nil {
-		logrus.Errorf("Service: Failed to get user by email: %v", err)
 		return nil, err
 	}
 
-	// Check if refresh token is the same as in DB
-	if user.RefreshToken != refreshToken {
-		logrus.Warnf("Service: Refresh token mismatch for user %s", email)
-		return nil, ErrInvalidRefreshToken
-	}
-
-	// Generating new tokens
-	tokens, err := s.auth.GenerateTokens(user)
-	if err != nil {
-		logrus.Errorf("Service: Failed to generate tokens: %v", err)
-		return nil, err
-	}
-
-	// Updating refresh token for user
-	_, err = s.userRepository.UpdateRefreshToken(ctx, user.ID, tokens.RefreshToken)
-	if err != nil {
-		logrus.Errorf("Service: Failed to update refresh token: %v", err)
-		return nil, err
-	}
-
-	logrus.Infof("Service: Tokens refreshed for user %s", user.Email)
+	logrus.Infof("Service: Tokens refreshed for user %s", email)
 	return tokens, nil
 }
 

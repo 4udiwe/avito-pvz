@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate go tool mockgen -source=contracts.go -destination=mocks/repo_mock.go -package=mocks
+
 type PointRepository interface {
 	Create(ctx context.Context, city string) (entity.Point, error)
 	GetAll(ctx context.Context) ([]entity.Point, error)

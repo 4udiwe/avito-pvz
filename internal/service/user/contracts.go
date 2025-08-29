@@ -8,6 +8,8 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate go tool mockgen -source=contracts.go -destination=mocks/mocks.go -package=mocks
+
 type UserRepository interface {
 	Create(ctx context.Context, user entity.User) (entity.User, error)
 	GetByEmail(ctx context.Context, email string) (entity.User, error)

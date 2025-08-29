@@ -1,0 +1,3 @@
+cover:
+	go test -count=1 -coverprofile=coverage.out ./internal/...
+	go tool cover -html=coverage.out
