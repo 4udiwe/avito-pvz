@@ -9,7 +9,6 @@ import (
 	"github.com/4udiwe/avito-pvz/internal/dto"
 	service "github.com/4udiwe/avito-pvz/internal/service/reception"
 	"github.com/labstack/echo/v4"
-	"github.com/sirupsen/logrus"
 )
 
 type handler struct {
@@ -26,7 +25,6 @@ func (h *handler) Handle(ctx echo.Context, in Request) error {
 	reception, err := h.s.OpenReception(ctx.Request().Context(), in.PvzId)
 
 	if err != nil {
-		logrus.Errorf("POST reception - %v", err)
 		if errors.Is(err, service.ErrNoPointFound) {
 			return echo.NewHTTPError(http.StatusNotFound, err.Error())
 		}

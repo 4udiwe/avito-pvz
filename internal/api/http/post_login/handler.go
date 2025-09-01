@@ -29,7 +29,7 @@ func (h *handler) Handle(ctx echo.Context, in Request) error {
 			return echo.NewHTTPError(http.StatusNotFound, err.Error())
 		}
 		if errors.Is(err, user.ErrInvalidCredentials) {
-			return echo.NewHTTPError(http.StatusForbidden)
+			return echo.NewHTTPError(http.StatusForbidden, err.Error())
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

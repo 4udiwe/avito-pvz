@@ -43,7 +43,7 @@ func (h *handler) Handle(ctx echo.Context, in Request) error {
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	return ctx.JSON(http.StatusCreated,
+	return ctx.JSON(http.StatusOK,
 		Response{
 			Info: lo.Map(pointsInfo, func(item entity.PointFullInfo, _ int) PointWithReceptions {
 				return PointWithReceptions{

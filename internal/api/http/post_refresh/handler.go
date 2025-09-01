@@ -27,7 +27,7 @@ func (h *handler) Handle(ctx echo.Context, in Request) error {
 
 	if err != nil {
 		if errors.Is(err, user.ErrInvalidRefreshToken) {
-			return echo.NewHTTPError(http.StatusNotFound, err.Error())
+			return echo.NewHTTPError(http.StatusForbidden, err.Error())
 		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

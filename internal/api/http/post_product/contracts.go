@@ -7,6 +7,8 @@ import (
 	"github.com/google/uuid"
 )
 
+//go:generate go tool mockgen -source=contracts.go -destination=mocks/mock_service.go
+
 type ProductService interface {
 	AddProduct(
 		ctx context.Context,

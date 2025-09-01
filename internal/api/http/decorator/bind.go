@@ -26,13 +26,14 @@ func (d *bindAndValidateDecorator[T]) Handle(c echo.Context) error {
 	var in T
 
 	if err := c.Bind(&in); err != nil {
-		logrus.Errorf("Failed to bind request: %v", err)
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		// каст ошибки производится для правильного тестирования и отображения только message в handler, без кода
+		logrus.Errorf("Failed to bind request: %v", err.(*echo.HTTPError))
+		return echo.NewHTTPError(http.StatusBadRequest, err.(*echo.HTTPError).Message)
 	}
 
 	if err := c.Validate(in); err != nil {
 		logrus.Errorf("Failed to validate request: %v", err)
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		return echo.NewHTTPError(http.StatusBadRequest, err.(*echo.HTTPError).Message)
 	}
 
 	return d.inner.Handle(c, in)

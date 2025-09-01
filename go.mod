@@ -3,6 +3,7 @@ module github.com/4udiwe/avito-pvz
 go 1.24.0
 
 require (
+	github.com/go-playground/assert/v2 v2.2.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/jackc/pgerrcode v0.0.0-20240316143900-6e2875d9b438

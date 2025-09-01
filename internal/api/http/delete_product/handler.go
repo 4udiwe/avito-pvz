@@ -35,6 +35,9 @@ func (h *handler) Handle(ctx echo.Context, in Request) error {
 		if errors.Is(err, service.ErrReceptionAlreadyClosed) {
 			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 		}
+		if errors.Is(err, service.ErrNoReceptionFound) {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 
