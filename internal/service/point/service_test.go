@@ -29,7 +29,7 @@ func TestCreatePoint(t *testing.T) {
 		arbitraryErr = errors.New("arbitrary error")
 	)
 
-	type MockBehavior func(r *mocks.MockPointRepository)
+	type MockBehavior func(r *mocks.MockPointRepository, m *mocks.MockMetrics)
 
 	for _, tc := range []struct {
 		name         string
@@ -39,15 +39,16 @@ func TestCreatePoint(t *testing.T) {
 	}{
 		{
 			name: "success",
-			mockBehavior: func(r *mocks.MockPointRepository) {
+			mockBehavior: func(r *mocks.MockPointRepository, m *mocks.MockMetrics) {
 				r.EXPECT().Create(ctx, city).Return(point, nil).Times(1)
+				m.EXPECT().Inc().Times(1)
 			},
 			want:    point,
 			wantErr: nil,
 		},
 		{
 			name: "no city found",
-			mockBehavior: func(r *mocks.MockPointRepository) {
+			mockBehavior: func(r *mocks.MockPointRepository, m *mocks.MockMetrics) {
 				r.EXPECT().Create(ctx, city).Return(emptyPoint, repository.ErrNoCityFound).Times(1)
 			},
 			want:    emptyPoint,
@@ -55,8 +56,9 @@ func TestCreatePoint(t *testing.T) {
 		},
 		{
 			name: "arbitrary error",
-			mockBehavior: func(r *mocks.MockPointRepository) {
+			mockBehavior: func(r *mocks.MockPointRepository, m *mocks.MockMetrics) {
 				r.EXPECT().Create(ctx, city).Return(emptyPoint, arbitraryErr).Times(1)
+				m.EXPECT().ErrInc().Times(1)
 			},
 			want:    emptyPoint,
 			wantErr: arbitraryErr,
@@ -69,12 +71,12 @@ func TestCreatePoint(t *testing.T) {
 			MockPointRepository := mocks.NewMockPointRepository(ctrl)
 			MockReceptionRepository := mocks.NewMockReceptionRepository(ctrl)
 			MockProductRepository := mocks.NewMockProductRepository(ctrl)
-
 			MockTransactor := mock_transactor.NewMockTransactor(ctrl)
+			MockMetrics := mocks.NewMockMetrics(ctrl)
 
-			tc.mockBehavior(MockPointRepository)
+			tc.mockBehavior(MockPointRepository, MockMetrics)
 
-			s := service.New(MockPointRepository, MockReceptionRepository, MockProductRepository, MockTransactor)
+			s := service.New(MockPointRepository, MockReceptionRepository, MockProductRepository, MockTransactor, MockMetrics)
 
 			out, err := s.CreatePoint(ctx, city)
 			assert.ErrorIs(t, err, tc.wantErr)
@@ -134,12 +136,12 @@ func TestGetAllPoints(t *testing.T) {
 			MockPointRepository := mocks.NewMockPointRepository(ctrl)
 			MockReceptionRepository := mocks.NewMockReceptionRepository(ctrl)
 			MockProductRepository := mocks.NewMockProductRepository(ctrl)
-
 			MockTransactor := mock_transactor.NewMockTransactor(ctrl)
+			MockMetrics := mocks.NewMockMetrics(ctrl)
 
 			tc.mockBehavior(MockPointRepository)
 
-			s := service.New(MockPointRepository, MockReceptionRepository, MockProductRepository, MockTransactor)
+			s := service.New(MockPointRepository, MockReceptionRepository, MockProductRepository, MockTransactor, MockMetrics)
 
 			out, err := s.GetAllPoints(ctx)
 			assert.ErrorIs(t, err, tc.wantErr)
@@ -295,12 +297,13 @@ func TestGetAllPointsFullInfo(t *testing.T) {
 			MockReceptionRepository := mocks.NewMockReceptionRepository(ctrl)
 			MockProductRepository := mocks.NewMockProductRepository(ctrl)
 			MockTransactor := mock_transactor.NewMockTransactor(ctrl)
+			MockMetrics := mocks.NewMockMetrics(ctrl)
 
 			tc.mockBehavior.pointMock(MockPointRepository)
 			tc.mockBehavior.receptionMock(MockReceptionRepository)
 			tc.mockBehavior.productMock(MockProductRepository)
 
-			s := service.New(MockPointRepository, MockReceptionRepository, MockProductRepository, MockTransactor)
+			s := service.New(MockPointRepository, MockReceptionRepository, MockProductRepository, MockTransactor, MockMetrics)
 
 			result, err := s.GetAllPointsFullInfo(ctx)
 			assert.ErrorIs(t, err, tc.wantErr)

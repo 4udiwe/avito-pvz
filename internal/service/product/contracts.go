@@ -17,3 +17,8 @@ type ProductsRepository interface {
 type ReceptionRepository interface {
 	GetLastReceptionStatus(ctx context.Context, pointID uuid.UUID) (entity.ReceptionStatus, error)
 }
+
+type Metrics interface {
+	Inc()
+	ErrInc()
+}

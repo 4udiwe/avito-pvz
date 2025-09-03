@@ -9,10 +9,11 @@ import (
 
 type (
 	Config struct {
-		App      App      `yaml:"app"`
-		HTTP     HTTP     `yaml:"http"`
-		Postgres Postgres `yaml:"postgres"`
-		Log      Log      `yaml:"logger"`
+		App        App        `yaml:"app"`
+		HTTP       HTTP       `yaml:"http"`
+		Postgres   Postgres   `yaml:"postgres"`
+		Log        Log        `yaml:"logger"`
+		Prometheus Prometheus `yaml:"prometheus"`
 	}
 
 	App struct {
@@ -30,6 +31,9 @@ type (
 	}
 	Log struct {
 		Level string `env-required:"true" yaml:"level" env:"LOG_LEVEL"`
+	}
+	Prometheus struct {
+		Port string `env-required:"true" yaml:"port" env:"PROMETHEUS_PORT"`
 	}
 )
 

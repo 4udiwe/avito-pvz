@@ -16,3 +16,8 @@ type ReceptionRepository interface {
 	CloseLastReception(ctx context.Context, pointID uuid.UUID) error
 	CheckIfPointExists(ctx context.Context, pointID uuid.UUID) (bool, error)
 }
+
+type Metrics interface {
+	Inc()
+	ErrInc()
+}

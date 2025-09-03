@@ -21,3 +21,8 @@ type ReceptionRepository interface {
 type ProductRepository interface {
 	GetAllByReception(ctx context.Context, receptionID uuid.UUID) ([]entity.Product, error)
 }
+
+type Metrics interface {
+	Inc()
+	ErrInc()
+}

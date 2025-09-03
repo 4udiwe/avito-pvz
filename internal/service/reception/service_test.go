@@ -33,6 +33,7 @@ func TestOpenReception(t *testing.T) {
 	type MockBehavior func(
 		r *mock_reception.MockReceptionRepository,
 		t *mock_transactor.MockTransactor,
+		m *mock_reception.MockMetrics,
 	)
 
 	for _, tc := range []struct {
@@ -43,7 +44,7 @@ func TestOpenReception(t *testing.T) {
 	}{
 		{
 			name: "success",
-			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor) {
+			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor, m *mock_reception.MockMetrics) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
@@ -52,13 +53,14 @@ func TestOpenReception(t *testing.T) {
 				r.EXPECT().CheckIfPointExists(ctx, pointID).Return(true, nil).Times(1)
 				r.EXPECT().GetLastReceptionStatus(ctx, pointID).Return(entity.ReceptionStatusClosed, nil).Times(1)
 				r.EXPECT().Open(ctx, pointID).Return(reception, nil).Times(1)
+				m.EXPECT().Inc().Times(1)
 			},
 			want:    reception,
 			wantErr: nil,
 		},
 		{
 			name: "failed to get status",
-			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor) {
+			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor, m *mock_reception.MockMetrics) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
@@ -66,14 +68,14 @@ func TestOpenReception(t *testing.T) {
 
 				r.EXPECT().CheckIfPointExists(ctx, pointID).Return(true, nil).Times(1)
 				r.EXPECT().GetLastReceptionStatus(ctx, pointID).Return(emptyStatus, arbitraryErr).Times(1)
-
+				m.EXPECT().ErrInc().Times(1)
 			},
 			want:    entity.Reception{},
 			wantErr: arbitraryErr,
 		},
 		{
 			name: "last reception not closed",
-			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor) {
+			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor, m *mock_reception.MockMetrics) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
@@ -87,7 +89,7 @@ func TestOpenReception(t *testing.T) {
 		},
 		{
 			name: "no point found",
-			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor) {
+			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor, m *mock_reception.MockMetrics) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
@@ -99,21 +101,22 @@ func TestOpenReception(t *testing.T) {
 			wantErr: service.ErrNoPointFound,
 		},
 		{
-			name: "failed to check point existance",
-			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor) {
+			name: "failed to check point existence",
+			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor, m *mock_reception.MockMetrics) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
 					})
 
 				r.EXPECT().CheckIfPointExists(ctx, pointID).Return(false, arbitraryErr).Times(1)
+				m.EXPECT().ErrInc().Times(1)
 			},
 			want:    entity.Reception{},
 			wantErr: arbitraryErr,
 		},
 		{
 			name: "failed to open",
-			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor) {
+			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor, m *mock_reception.MockMetrics) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
@@ -122,6 +125,7 @@ func TestOpenReception(t *testing.T) {
 				r.EXPECT().CheckIfPointExists(ctx, pointID).Return(true, nil).Times(1)
 				r.EXPECT().GetLastReceptionStatus(ctx, pointID).Return(entity.ReceptionStatusClosed, nil).Times(1)
 				r.EXPECT().Open(ctx, pointID).Return(entity.Reception{}, arbitraryErr).Times(1)
+				m.EXPECT().ErrInc().Times(1)
 			},
 			want:    entity.Reception{},
 			wantErr: arbitraryErr,
@@ -133,10 +137,11 @@ func TestOpenReception(t *testing.T) {
 
 			MockReceptionRepo := mock_reception.NewMockReceptionRepository(ctrl)
 			MockTransactor := mock_transactor.NewMockTransactor(ctrl)
+			MockMetrics := mock_reception.NewMockMetrics(ctrl)
 
-			tc.mockBehavior(MockReceptionRepo, MockTransactor)
+			tc.mockBehavior(MockReceptionRepo, MockTransactor, MockMetrics)
 
-			s := service.New(MockReceptionRepo, MockTransactor)
+			s := service.New(MockReceptionRepo, MockTransactor, MockMetrics)
 
 			out, err := s.OpenReception(ctx, pointID)
 			assert.ErrorIs(t, err, tc.wantErr)
@@ -191,7 +196,6 @@ func TestCloseReception(t *testing.T) {
 
 				r.EXPECT().CheckIfPointExists(ctx, pointID).Return(true, nil).Times(1)
 				r.EXPECT().GetLastReceptionStatus(ctx, pointID).Return(emptyStatus, arbitraryErr).Times(1)
-
 			},
 			wantErr: arbitraryErr,
 		},
@@ -249,7 +253,7 @@ func TestCloseReception(t *testing.T) {
 			wantErr: service.ErrNoPointFound,
 		},
 		{
-			name: "failed to check point existance",
+			name: "failed to check point existence",
 			mockBehavior: func(r *mock_reception.MockReceptionRepository, t *mock_transactor.MockTransactor) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
@@ -297,10 +301,11 @@ func TestCloseReception(t *testing.T) {
 
 			MockReceptionRepo := mock_reception.NewMockReceptionRepository(ctrl)
 			MockTransactor := mock_transactor.NewMockTransactor(ctrl)
+			MockMetrics := mock_reception.NewMockMetrics(ctrl)
 
 			tc.mockBehavior(MockReceptionRepo, MockTransactor)
 
-			s := service.New(MockReceptionRepo, MockTransactor)
+			s := service.New(MockReceptionRepo, MockTransactor, MockMetrics)
 
 			err := s.CloseReception(ctx, pointID)
 			assert.ErrorIs(t, err, tc.wantErr)

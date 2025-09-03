@@ -36,6 +36,7 @@ func TestAddProduct(t *testing.T) {
 		productRepo *mocks.MockProductsRepository,
 		receptionRepo *mocks.MockReceptionRepository,
 		t *mock_transactor.MockTransactor,
+		m *mocks.MockMetrics,
 	)
 
 	for _, tc := range []struct {
@@ -46,7 +47,7 @@ func TestAddProduct(t *testing.T) {
 	}{
 		{
 			name: "success",
-			mockBehavior: func(productRepo *mocks.MockProductsRepository, receptionRepo *mocks.MockReceptionRepository, t *mock_transactor.MockTransactor) {
+			mockBehavior: func(productRepo *mocks.MockProductsRepository, receptionRepo *mocks.MockReceptionRepository, t *mock_transactor.MockTransactor, m *mocks.MockMetrics) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
@@ -56,13 +57,14 @@ func TestAddProduct(t *testing.T) {
 
 				productRepo.EXPECT().Create(ctx, pointID, productType).Return(productOut, nil).Times(1)
 
+				m.EXPECT().Inc().Times(1)
 			},
 			want:    productOut,
 			wantErr: nil,
 		},
 		{
 			name: "reception already closed",
-			mockBehavior: func(productRepo *mocks.MockProductsRepository, receptionRepo *mocks.MockReceptionRepository, t *mock_transactor.MockTransactor) {
+			mockBehavior: func(productRepo *mocks.MockProductsRepository, receptionRepo *mocks.MockReceptionRepository, t *mock_transactor.MockTransactor, m *mocks.MockMetrics) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
@@ -75,20 +77,21 @@ func TestAddProduct(t *testing.T) {
 		},
 		{
 			name: "fetching reception status error",
-			mockBehavior: func(productRepo *mocks.MockProductsRepository, receptionRepo *mocks.MockReceptionRepository, t *mock_transactor.MockTransactor) {
+			mockBehavior: func(productRepo *mocks.MockProductsRepository, receptionRepo *mocks.MockReceptionRepository, t *mock_transactor.MockTransactor, m *mocks.MockMetrics) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
 					})
 
 				receptionRepo.EXPECT().GetLastReceptionStatus(ctx, pointID).Return(emptyStatus, arbitraryErr).Times(1)
+				m.EXPECT().ErrInc().Times(1)
 			},
 			want:    entity.Product{},
 			wantErr: arbitraryErr,
 		},
 		{
 			name: "creating error no reception found",
-			mockBehavior: func(productRepo *mocks.MockProductsRepository, receptionRepo *mocks.MockReceptionRepository, t *mock_transactor.MockTransactor) {
+			mockBehavior: func(productRepo *mocks.MockProductsRepository, receptionRepo *mocks.MockReceptionRepository, t *mock_transactor.MockTransactor, m *mocks.MockMetrics) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
@@ -103,7 +106,7 @@ func TestAddProduct(t *testing.T) {
 		},
 		{
 			name: "creating error no point found",
-			mockBehavior: func(productRepo *mocks.MockProductsRepository, receptionRepo *mocks.MockReceptionRepository, t *mock_transactor.MockTransactor) {
+			mockBehavior: func(productRepo *mocks.MockProductsRepository, receptionRepo *mocks.MockReceptionRepository, t *mock_transactor.MockTransactor, m *mocks.MockMetrics) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
@@ -118,7 +121,7 @@ func TestAddProduct(t *testing.T) {
 		},
 		{
 			name: "creating arbitrary error",
-			mockBehavior: func(productRepo *mocks.MockProductsRepository, receptionRepo *mocks.MockReceptionRepository, t *mock_transactor.MockTransactor) {
+			mockBehavior: func(productRepo *mocks.MockProductsRepository, receptionRepo *mocks.MockReceptionRepository, t *mock_transactor.MockTransactor, m *mocks.MockMetrics) {
 				t.EXPECT().WithinTransaction(ctx, gomock.Any()).
 					DoAndReturn(func(ctx context.Context, fn func(ctx context.Context) error) error {
 						return fn(ctx)
@@ -127,6 +130,8 @@ func TestAddProduct(t *testing.T) {
 				receptionRepo.EXPECT().GetLastReceptionStatus(ctx, pointID).Return(entity.ReceptionStatusInProgress, nil).Times(1)
 
 				productRepo.EXPECT().Create(ctx, pointID, productType).Return(entity.Product{}, arbitraryErr).Times(1)
+
+				m.EXPECT().ErrInc().Times(1)
 			},
 			want:    entity.Product{},
 			wantErr: arbitraryErr,
@@ -139,17 +144,17 @@ func TestAddProduct(t *testing.T) {
 			MockReceptionRepository := mocks.NewMockReceptionRepository(ctrl)
 			MockProductRepository := mocks.NewMockProductsRepository(ctrl)
 			MockTransactor := mock_transactor.NewMockTransactor(ctrl)
+			MockMetrics := mocks.NewMockMetrics(ctrl)
 
-			tc.mockBehavior(MockProductRepository, MockReceptionRepository, MockTransactor)
+			tc.mockBehavior(MockProductRepository, MockReceptionRepository, MockTransactor, MockMetrics)
 
-			s := service.New(MockProductRepository, MockReceptionRepository, MockTransactor)
+			s := service.New(MockProductRepository, MockReceptionRepository, MockTransactor, MockMetrics)
 
 			out, err := s.AddProduct(ctx, pointID, productType)
 			assert.ErrorIs(t, err, tc.wantErr)
 			assert.Equal(t, tc.want, out)
 		})
 	}
-
 }
 
 func TestDeleteLastProductFromReception(t *testing.T) {
@@ -183,7 +188,6 @@ func TestDeleteLastProductFromReception(t *testing.T) {
 				receptionRepo.EXPECT().GetLastReceptionStatus(ctx, pointID).Return(entity.ReceptionStatusInProgress, nil).Times(1)
 
 				productRepo.EXPECT().DeleteLastFromReception(ctx, pointID).Return(nil).Times(1)
-
 			},
 			wantErr: nil,
 		},
@@ -261,14 +265,14 @@ func TestDeleteLastProductFromReception(t *testing.T) {
 			MockReceptionRepository := mocks.NewMockReceptionRepository(ctrl)
 			MockProductRepository := mocks.NewMockProductsRepository(ctrl)
 			MockTransactor := mock_transactor.NewMockTransactor(ctrl)
+			MockMetrics := mocks.NewMockMetrics(ctrl)
 
 			tc.mockBehavior(MockProductRepository, MockReceptionRepository, MockTransactor)
 
-			s := service.New(MockProductRepository, MockReceptionRepository, MockTransactor)
+			s := service.New(MockProductRepository, MockReceptionRepository, MockTransactor, MockMetrics)
 
 			err := s.DeleteLastProductFromReception(ctx, pointID)
 			assert.ErrorIs(t, err, tc.wantErr)
 		})
-
 	}
 }

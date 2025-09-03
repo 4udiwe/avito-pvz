@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"net/http"
 	"os"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -11,6 +13,7 @@ import (
 	"github.com/4udiwe/avito-pvz/internal/api/http/middleware"
 	"github.com/4udiwe/avito-pvz/internal/auth"
 	"github.com/4udiwe/avito-pvz/internal/database"
+	"github.com/4udiwe/avito-pvz/internal/metrics"
 	repo_point "github.com/4udiwe/avito-pvz/internal/repository/point"
 	repo_product "github.com/4udiwe/avito-pvz/internal/repository/product"
 	repo_reception "github.com/4udiwe/avito-pvz/internal/repository/reception"
@@ -66,6 +69,11 @@ type App struct {
 	pointService     *point.Service
 	productService   *product.Service
 	receptionService *reception.Service
+
+	// Metrics
+	pointMetrics     *metrics.PointMetrics
+	productMetrics   *metrics.ProductMetrics
+	receptionMetrics *metrics.ReceptionMetrics
 }
 
 func New(configPath string) *App {
@@ -99,10 +107,38 @@ func (app *App) Start() {
 		log.Errorf("app - Start - Migrations failed: %v", err)
 	}
 
-	// Server
-	log.Info("Start server...")
+	// Prometheus server
+	log.Infof("Starting metrics server...")
+	metricsHandler := echo.New()
+	metrics.ConfigureHandler(metricsHandler)
+	metricsHandler.GET("/health", func(c echo.Context) error {
+		return c.String(200, "OK")
+	})
+	metricsServer := httpserver.New(metricsHandler, httpserver.Port(app.cfg.Prometheus.Port))
+	metricsServer.Start()
+	log.Debugf("Metrics server port: %s", app.cfg.Prometheus.Port)
+
+	// Проверьте что health endpoint работает
+	time.Sleep(100 * time.Millisecond)
+	resp, err := http.Get("http://localhost:" + app.cfg.Prometheus.Port + "/health")
+	if err != nil {
+		log.Errorf("Metrics health check failed: %v", err)
+	} else {
+		log.Infof("Metrics health check: %s", resp.Status)
+		resp.Body.Close()
+	}
+
+	defer func() {
+		if err := metricsServer.Shutdown(); err != nil {
+			log.Errorf("Metrics server shutdown error: %v", err)
+		}
+	}()
+
+	// App server
+	log.Info("Starting app server...")
 	httpServer := httpserver.New(app.EchoHandler(), httpserver.Port(app.cfg.HTTP.Port))
 	httpServer.Start()
+	log.Debugf("Server port: %s", app.cfg.HTTP.Port)
 
 	defer func() {
 		if err := httpServer.Shutdown(); err != nil {
@@ -115,7 +151,9 @@ func (app *App) Start() {
 		log.Infof("app - Start - signal: %v", s)
 	case err := <-httpServer.Notify():
 		log.Errorf("app - Start - server error: %v", err)
+	case err := <-metricsServer.Notify():
+		log.Errorf("app - Start - metrics server error: %v", err)
 	}
 
-	log.Info("Graceful shutdown...")
+	log.Info("Shutting down...")
 }

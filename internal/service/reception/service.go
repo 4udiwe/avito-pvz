@@ -14,12 +14,14 @@ import (
 type Service struct {
 	receptionRepository ReceptionRepository
 	txManager           transactor.Transactor
+	metrics             Metrics
 }
 
-func New(r ReceptionRepository, tx transactor.Transactor) *Service {
+func New(r ReceptionRepository, tx transactor.Transactor, m Metrics) *Service {
 	return &Service{
 		receptionRepository: r,
 		txManager:           tx,
+		metrics:             m,
 	}
 }
 
@@ -59,10 +61,14 @@ func (s *Service) OpenReception(ctx context.Context, pointID uuid.UUID) (entity.
 
 	if err != nil {
 		logrus.Errorf("Service: Failed to open reception for point %s: %v", pointID, err)
+		if !errors.Is(err, ErrNoPointFound) && !errors.Is(err, ErrLastReceptionNotClosed) {
+			s.metrics.ErrInc()
+		}
 		return entity.Reception{}, err
-	}
+	} 
 
 	logrus.Infof("Service: Reception opened: %+v", reception)
+	s.metrics.Inc()
 	return reception, nil
 }
 

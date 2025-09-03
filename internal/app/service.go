@@ -11,7 +11,7 @@ func (app *App) PointService() *point.Service {
 	if app.pointService != nil {
 		return app.pointService
 	}
-	app.pointService = point.New(app.PointRepo(), app.ReceptionRepo(), app.ProductRepo(), app.Postgres())
+	app.pointService = point.New(app.PointRepo(), app.ReceptionRepo(), app.ProductRepo(), app.Postgres(), app.PointMetrics())
 	return app.pointService
 }
 
@@ -19,7 +19,7 @@ func (app *App) ProductService() *product.Service {
 	if app.productService != nil {
 		return app.productService
 	}
-	app.productService = product.New(app.ProductRepo(), app.ReceptionRepo(), app.Postgres())
+	app.productService = product.New(app.ProductRepo(), app.ReceptionRepo(), app.Postgres(), app.ProductMetrics())
 	return app.productService
 }
 
@@ -27,7 +27,7 @@ func (app *App) ReceptionService() *reception.Service {
 	if app.receptionService != nil {
 		return app.receptionService
 	}
-	app.receptionService = reception.New(app.ReceptionRepo(), app.Postgres())
+	app.receptionService = reception.New(app.ReceptionRepo(), app.Postgres(), app.ReceptionMetrics())
 	return app.receptionService
 }
 

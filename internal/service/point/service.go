@@ -15,18 +15,21 @@ type Service struct {
 	receptionRepository ReceptionRepository
 	productRepository   ProductRepository
 	txManager           transactor.Transactor
+	metrics             Metrics
 }
 
 func New(pointRepo PointRepository,
 	receptionRepo ReceptionRepository,
 	productRepo ProductRepository,
 	txManager transactor.Transactor,
+	metrics Metrics,
 ) *Service {
 	return &Service{
 		pointRepository:     pointRepo,
 		receptionRepository: receptionRepo,
 		productRepository:   productRepo,
 		txManager:           txManager,
+		metrics:             metrics,
 	}
 }
 
@@ -40,10 +43,12 @@ func (s *Service) CreatePoint(ctx context.Context, city string) (entity.Point, e
 			return entity.Point{}, ErrNoCityFound
 		}
 		logrus.Errorf("Service: Failed to create point for city %s: %v", city, err)
+		s.metrics.ErrInc()
 		return entity.Point{}, err
 	}
 
 	logrus.Infof("Service: Point created: %+v", point)
+	s.metrics.Inc()
 	return point, nil
 }
 

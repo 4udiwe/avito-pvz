@@ -15,11 +15,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    networks:
+      - app-network 
 
   app:
     build: .
     ports:
       - "8080:8080"
+      - "9000:9000"
     depends_on:
       db:
         condition: service_healthy
@@ -29,6 +32,23 @@ services:
       POSTGRES_URL: postgres://${DB_USER}:${DB_PASSWORD}@db:${DB_PORT}/${DB_NAME}?sslmode=disable
       SERVER_PORT: ${SERVER_PORT}
       CONFIG_PATH: ${CONFIG_PATH}
+    networks:
+      - app-network
+
+  prometheus:
+    image: prom/prometheus
+    ports:
+      - "9090:9090" 
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - app-network
+    depends_on:
+      - app
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
   postgres_data:

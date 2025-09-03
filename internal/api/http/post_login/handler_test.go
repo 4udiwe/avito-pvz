@@ -106,7 +106,8 @@ func TestHandle(t *testing.T) {
 
 			if tc.wantStatus >= 400 {
 				require.Error(t, err)
-				httpErr, ok := err.(*echo.HTTPError)
+				httpErr := &echo.HTTPError{}
+				ok := errors.As(err, &httpErr)
 				require.True(t, ok)
 				assert.Equal(t, tc.wantStatus, httpErr.Code)
 				assert.Equal(t, tc.wantBody, httpErr.Message)

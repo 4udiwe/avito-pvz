@@ -15,13 +15,15 @@ type Service struct {
 	productRepository   ProductsRepository
 	receptionRepository ReceptionRepository
 	txManager           transactor.Transactor
+	metrics             Metrics
 }
 
-func New(p ProductsRepository, r ReceptionRepository, tx transactor.Transactor) *Service {
+func New(p ProductsRepository, r ReceptionRepository, tx transactor.Transactor, m Metrics) *Service {
 	return &Service{
 		productRepository:   p,
 		receptionRepository: r,
 		txManager:           tx,
+		metrics:             m,
 	}
 }
 
@@ -59,10 +61,14 @@ func (s *Service) AddProduct(
 		if errors.Is(err, repository.ErrNoReceptionFound) {
 			return entity.Product{}, ErrNoReceptionFound
 		}
+		if !errors.Is(err, ErrReceptionAlreadyClosed) {
+			s.metrics.ErrInc()
+		}
 		return entity.Product{}, err
 	}
 
 	logrus.Infof("Service: Product added: %+v", out)
+	s.metrics.Inc()
 	return out, nil
 }
 

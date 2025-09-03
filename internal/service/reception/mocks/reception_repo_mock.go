@@ -115,3 +115,51 @@ func (mr *MockReceptionRepositoryMockRecorder) Open(ctx, pointID any) *gomock.Ca
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Open", reflect.TypeOf((*MockReceptionRepository)(nil).Open), ctx, pointID)
 }
+
+// MockMetrics is a mock of Metrics interface.
+type MockMetrics struct {
+	ctrl     *gomock.Controller
+	recorder *MockMetricsMockRecorder
+	isgomock struct{}
+}
+
+// MockMetricsMockRecorder is the mock recorder for MockMetrics.
+type MockMetricsMockRecorder struct {
+	mock *MockMetrics
+}
+
+// NewMockMetrics creates a new mock instance.
+func NewMockMetrics(ctrl *gomock.Controller) *MockMetrics {
+	mock := &MockMetrics{ctrl: ctrl}
+	mock.recorder = &MockMetricsMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockMetrics) EXPECT() *MockMetricsMockRecorder {
+	return m.recorder
+}
+
+// ErrInc mocks base method.
+func (m *MockMetrics) ErrInc() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ErrInc")
+}
+
+// ErrInc indicates an expected call of ErrInc.
+func (mr *MockMetricsMockRecorder) ErrInc() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ErrInc", reflect.TypeOf((*MockMetrics)(nil).ErrInc))
+}
+
+// Inc mocks base method.
+func (m *MockMetrics) Inc() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Inc")
+}
+
+// Inc indicates an expected call of Inc.
+func (mr *MockMetricsMockRecorder) Inc() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Inc", reflect.TypeOf((*MockMetrics)(nil).Inc))
+}
