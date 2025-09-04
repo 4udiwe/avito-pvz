@@ -27,6 +27,9 @@ func (app *App) EchoHandler() *echo.Echo {
 }
 
 func (app *App) configureRouter(handler *echo.Echo) {
+	// Metrics middleware
+	handler.Use(middleware.MetricsMiddleware)
+
 	handler.POST("dummyLogin", app.PostDummyLoginHandler().Handle)
 	handler.POST("register", app.PostRegisterHandler().Handle)
 	handler.POST("login", app.PostLoginHandler().Handle)

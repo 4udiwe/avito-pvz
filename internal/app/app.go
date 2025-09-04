@@ -2,9 +2,7 @@ package app
 
 import (
 	"context"
-	"net/http"
 	"os"
-	"time"
 
 	log "github.com/sirupsen/logrus"
 
@@ -117,16 +115,6 @@ func (app *App) Start() {
 	metricsServer := httpserver.New(metricsHandler, httpserver.Port(app.cfg.Prometheus.Port))
 	metricsServer.Start()
 	log.Debugf("Metrics server port: %s", app.cfg.Prometheus.Port)
-
-	// Проверьте что health endpoint работает
-	time.Sleep(100 * time.Millisecond)
-	resp, err := http.Get("http://localhost:" + app.cfg.Prometheus.Port + "/health")
-	if err != nil {
-		log.Errorf("Metrics health check failed: %v", err)
-	} else {
-		log.Infof("Metrics health check: %s", resp.Status)
-		resp.Body.Close()
-	}
 
 	defer func() {
 		if err := metricsServer.Shutdown(); err != nil {

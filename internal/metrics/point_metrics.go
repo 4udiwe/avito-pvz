@@ -2,7 +2,6 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/sirupsen/logrus"
 )
 
 type PointMetrics struct {
@@ -28,7 +27,6 @@ func NewPointMetrics() *PointMetrics {
 }
 
 func (m *PointMetrics) Inc() {
-	logrus.Debug("Point metrics increased")
 	m.counter.Inc()
 }
 

@@ -65,7 +65,7 @@ func (s *Service) OpenReception(ctx context.Context, pointID uuid.UUID) (entity.
 			s.metrics.ErrInc()
 		}
 		return entity.Reception{}, err
-	} 
+	}
 
 	logrus.Infof("Service: Reception opened: %+v", reception)
 	s.metrics.Inc()

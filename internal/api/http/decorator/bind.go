@@ -1,6 +1,7 @@
 package decorator
 
 import (
+	"errors"
 	"net/http"
 
 	api "github.com/4udiwe/avito-pvz/internal/api/http"
@@ -26,15 +27,22 @@ func (d *bindAndValidateDecorator[T]) Handle(c echo.Context) error {
 	var in T
 
 	if err := c.Bind(&in); err != nil {
-		// каст ошибки производится для правильного тестирования и отображения только message в handler, без кода
-		logrus.Errorf("Failed to bind request: %v", err.(*echo.HTTPError))
-		return echo.NewHTTPError(http.StatusBadRequest, err.(*echo.HTTPError).Message)
+		logrus.Errorf("Failed to bind request: %v", err)
+		return d.handleError(err, err.Error())
 	}
 
 	if err := c.Validate(in); err != nil {
 		logrus.Errorf("Failed to validate request: %v", err)
-		return echo.NewHTTPError(http.StatusBadRequest, err.(*echo.HTTPError).Message)
+		return d.handleError(err, err.Error())
 	}
 
 	return d.inner.Handle(c, in)
+}
+
+func (d *bindAndValidateDecorator[T]) handleError(err error, defaultMsg string) *echo.HTTPError {
+	var httpErr *echo.HTTPError
+	if errors.As(err, &httpErr) {
+		return echo.NewHTTPError(http.StatusBadRequest, httpErr.Message)
+	}
+	return echo.NewHTTPError(http.StatusBadRequest, defaultMsg)
 }
