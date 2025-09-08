@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/4udiwe/avito-pvz/internal/entity"
-	. "github.com/Eun/go-hit"
+	hit "github.com/Eun/go-hit"
 )
 
 const (
@@ -33,12 +33,12 @@ func Login(role string) (string, error) {
 		"role":     role,
 	}
 
-	err := Do(
-		Post(basePath+"/register"),
-		Send().Headers("Content-Type").Add("application/json"),
-		Send().Body().JSON(body),
-		Expect().Status().Equal(http.StatusCreated),
-		Store().Response().Body().JSON().JQ(".access_token").In(&accessToken),
+	err := hit.Do(
+		hit.Post(basePath+"/register"),
+		hit.Send().Headers("Content-Type").Add("application/json"),
+		hit.Send().Body().JSON(body),
+		hit.Expect().Status().Equal(http.StatusCreated),
+		hit.Store().Response().Body().JSON().JQ(".access_token").In(&accessToken),
 	)
 
 	if err != nil {
