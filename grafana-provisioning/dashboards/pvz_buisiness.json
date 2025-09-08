@@ -1,0 +1,106 @@
+{
+    "id": null,
+    "title": "Avito PVZ - Buisiness Metrics",
+    "uid": "avito-pvz-biz",
+    "timezone": "browser",
+    "schemaVersion": 30,
+    "version": 1,
+    "panels": [
+        {
+            "type": "stat",
+            "title": "Points Created",
+            "gridPos": {
+                "x": 0,
+                "y": 0,
+                "w": 6,
+                "h": 3
+            },
+            "datasource": "Prometheus",
+            "targets": [
+                {
+                    "expr": "sum(points_created_total)"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "Points Errors",
+            "gridPos": {
+                "x": 6,
+                "y": 0,
+                "w": 6,
+                "h": 3
+            },
+            "datasource": "Prometheus",
+            "targets": [
+                {
+                    "expr": "sum(points_created_errors)"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "Products Created",
+            "gridPos": {
+                "x": 12,
+                "y": 0,
+                "w": 6,
+                "h": 3
+            },
+            "datasource": "Prometheus",
+            "targets": [
+                {
+                    "expr": "sum(products_created_total)"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "Products Errors",
+            "gridPos": {
+                "x": 18,
+                "y": 0,
+                "w": 6,
+                "h": 3
+            },
+            "datasource": "Prometheus",
+            "targets": [
+                {
+                    "expr": "sum(products_created_errors)"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "Receptions Created",
+            "gridPos": {
+                "x": 0,
+                "y": 3,
+                "w": 6,
+                "h": 3
+            },
+            "datasource": "Prometheus",
+            "targets": [
+                {
+                    "expr": "sum(reception_created_total)"
+                }
+            ]
+        },
+        {
+            "type": "stat",
+            "title": "Receptions Errors",
+            "gridPos": {
+                "x": 6,
+                "y": 3,
+                "w": 6,
+                "h": 3
+            },
+            "datasource": "Prometheus",
+            "targets": [
+                {
+                    "expr": "sum(reception_created_errors)"
+                }
+            ]
+        }
+    ]
+}

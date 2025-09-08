@@ -1,0 +1,77 @@
+{
+    "id": null,
+    "title": "Avito PVZ - Technical Metrics",
+    "uid": "avito-pvz-tech",
+    "timezone": "browser",
+    "schemaVersion": 30,
+    "version": 1,
+    "panels": [
+        {
+            "type": "stat",
+            "title": "Total HTTP Requests",
+            "gridPos": {
+                "x": 0,
+                "y": 0,
+                "w": 6,
+                "h": 3
+            },
+            "datasource": "Prometheus",
+            "targets": [
+                {
+                    "expr": "sum(http_requests_total)"
+                }
+            ]
+        },
+        {
+            "type": "graph",
+            "title": "Requests per Second",
+            "gridPos": {
+                "x": 6,
+                "y": 0,
+                "w": 18,
+                "h": 8
+            },
+            "datasource": "Prometheus",
+            "targets": [
+                {
+                    "expr": "sum by (method, path, status) (rate(http_requests_total[1m]))",
+                    "legendFormat": "{{method}} {{path}} ({{status}})"
+                }
+            ]
+        },
+        {
+            "type": "graph",
+            "title": "95th Percentile Latency",
+            "gridPos": {
+                "x": 0,
+                "y": 3,
+                "w": 12,
+                "h": 8
+            },
+            "datasource": "Prometheus",
+            "targets": [
+                {
+                    "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, path))",
+                    "legendFormat": "{{path}}"
+                }
+            ]
+        },
+        {
+            "type": "graph",
+            "title": "Average Latency",
+            "gridPos": {
+                "x": 12,
+                "y": 3,
+                "w": 12,
+                "h": 8
+            },
+            "datasource": "Prometheus",
+            "targets": [
+                {
+                    "expr": "sum(rate(http_request_duration_seconds_sum[5m])) by (path) / sum(rate(http_request_duration_seconds_count[5m])) by (path)",
+                    "legendFormat": "{{path}}"
+                }
+            ]
+        }
+    ]
+}
