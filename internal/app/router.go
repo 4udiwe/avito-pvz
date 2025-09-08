@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/4udiwe/avito-pvz/internal/api/http/middleware"
 	"github.com/4udiwe/avito-pvz/pkg/validator"
@@ -52,4 +53,6 @@ func (app *App) configureRouter(handler *echo.Echo) {
 		pvzGroup.POST("", app.PostPointHandler().Handle, middleware.ModderatorOnly)
 		pvzGroup.GET("", app.GetPointsHandler().Handle, middleware.EmployeeAndModerator)
 	}
+
+	handler.GET("/health", func(c echo.Context) error { return c.NoContent(http.StatusOK) })
 }
