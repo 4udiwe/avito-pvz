@@ -48,6 +48,13 @@ docker compose down --remove-orphans
 - с бизнес-метриками (кол-во созданных пунктов, приемок, товаров и ошибки)
 - с техническими метриками (кол-во запросов, время задержки)
 
+<details>
+  <summary>Скриншоты метрик</summary>
+
+  ![tech_metrics](.github\pictures\tech-metrics.png)
+  ![buisness_metrics](.github\pictures\tech-metrics.png)
+</details>
+
 ### Дополнительно
 Настроено подробное логирование - __logrus__.
 Настроена кодогенерация DTO, которые используются в ендпоинтах - __oapi-codegen__.
@@ -62,3 +69,13 @@ docker compose down --remove-orphans
 - Docker & Docker Compose
 - Prometheus
 - Grafana
+
+## Примеры запросов
+
+<details>
+  <summary>Запросы</summary>
+
+  ![query1](.github\pictures\query1.png)
+  ![query2](.github\pictures\query2.png)
+  ![query3](.github\pictures\query3.png)
+</details>
