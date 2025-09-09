@@ -51,8 +51,8 @@ docker compose down --remove-orphans
 <details>
   <summary>Скриншоты метрик</summary>
 
-  ![tech_metrics](.github\pictures\tech-metrics.png)
-  ![buisness_metrics](.github\pictures\tech-metrics.png)
+  ![tech_metrics](.github/pictures/tech-metrics.png)
+  ![buisness_metrics](.github/pictures/buisness-metrics.png)
 </details>
 
 ### Дополнительно
@@ -75,7 +75,7 @@ docker compose down --remove-orphans
 <details>
   <summary>Запросы</summary>
 
-  ![query1](.github\pictures\query1.png)
-  ![query2](.github\pictures\query2.png)
-  ![query3](.github\pictures\query3.png)
+  ![query1](.github/pictures/query1.png)
+  ![query2](.github/pictures/query2.png)
+  ![query3](.github/pictures/query3.png)
 </details>
